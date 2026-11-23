@@ -1,15 +1,31 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { defaultProductImage, resolveProductImage } from '../assets/images.js'
+import ConfirmModal from '../components/ConfirmModal.jsx'
 import PageHeader from '../components/PageHeader.jsx'
-import { getById } from '../services/productService.js'
+import Toast from '../components/Toast.jsx'
+import { getById, remove } from '../services/productService.js'
 import { formatPrice } from '../utils/format.js'
 
 export default function ProductDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  // Mensaje que llega desde ProductEdit después de guardar.
+  useEffect(() => {
+    if (location.state?.flash) {
+      setToast({ message: location.state.flash, type: 'success' })
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.pathname, location.state, navigate])
 
   useEffect(() => {
     let active = true
@@ -31,6 +47,21 @@ export default function ProductDetail() {
       active = false
     }
   }, [id])
+
+  const confirmDelete = async () => {
+    if (!product) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await remove(product.id)
+      navigate('/productos', {
+        state: { flash: `“${product.nombre}” se eliminó correctamente.` },
+      })
+    } catch (err) {
+      setDeleteError(err.message || 'No pudimos eliminar el producto.')
+      setDeleting(false)
+    }
+  }
 
   return (
     <>
@@ -107,6 +138,16 @@ export default function ProductDetail() {
                   <Link className="btn btn-primary" to={`/productos/${product.id}/editar`}>
                     Editar producto
                   </Link>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => {
+                      setDeleteError(null)
+                      setConfirmOpen(true)
+                    }}
+                  >
+                    Eliminar producto
+                  </button>
                   <Link className="btn btn-outline-secondary" to="/productos">
                     Volver al catálogo
                   </Link>
@@ -116,6 +157,31 @@ export default function ProductDetail() {
           </article>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        title="Eliminar producto"
+        description={
+          product
+            ? `¿Seguro que querés eliminar “${product.nombre}”? Esta acción no se puede deshacer.`
+            : ''
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) {
+            setConfirmOpen(false)
+            setDeleteError(null)
+          }
+        }}
+        loading={deleting}
+        error={deleteError}
+      />
+
+      <Toast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
     </>
   )
 }

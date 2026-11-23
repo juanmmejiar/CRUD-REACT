@@ -1,10 +1,56 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import ConfirmModal from '../components/ConfirmModal.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import ProductList from '../components/ProductList.jsx'
+import Toast from '../components/Toast.jsx'
 import useProducts from '../hooks/useProducts.js'
 
 export default function Products() {
-  const { products, loading, error, reload } = useProducts()
+  const { products, loading, error, reload, removeProduct } = useProducts()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [productToDelete, setProductToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  // Recoge el mensaje que dejan las páginas de crear/editar/eliminar.
+  useEffect(() => {
+    if (location.state?.flash) {
+      setToast({ message: location.state.flash, type: 'success' })
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.pathname, location.state, navigate])
+
+  const openDelete = (product) => {
+    setProductToDelete(product)
+    setDeleteError(null)
+  }
+
+  const closeDelete = () => {
+    if (deleting) return
+    setProductToDelete(null)
+    setDeleteError(null)
+  }
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await removeProduct(productToDelete.id)
+      setToast({
+        message: `“${productToDelete.nombre}” se eliminó correctamente.`,
+        type: 'success',
+      })
+      setProductToDelete(null)
+    } catch (err) {
+      setDeleteError(err.message || 'No pudimos eliminar el producto.')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <>
@@ -43,17 +89,47 @@ export default function Products() {
             error={error}
             onRetry={reload}
             renderActions={(product) => (
-              <Link
-                className="btn btn-sm btn-outline-secondary"
-                to={`/productos/${product.id}/editar`}
-                aria-label={`Editar ${product.nombre}`}
-              >
-                Editar
-              </Link>
+              <>
+                <Link
+                  className="btn btn-sm btn-outline-secondary"
+                  to={`/productos/${product.id}/editar`}
+                  aria-label={`Editar ${product.nombre}`}
+                >
+                  Editar
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={() => openDelete(product)}
+                  aria-label={`Eliminar ${product.nombre}`}
+                >
+                  Eliminar
+                </button>
+              </>
             )}
           />
         </div>
       </div>
+
+      <ConfirmModal
+        open={Boolean(productToDelete)}
+        title="Eliminar producto"
+        description={
+          productToDelete
+            ? `¿Seguro que querés eliminar “${productToDelete.nombre}”? Esta acción no se puede deshacer.`
+            : ''
+        }
+        onConfirm={confirmDelete}
+        onCancel={closeDelete}
+        loading={deleting}
+        error={deleteError}
+      />
+
+      <Toast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
     </>
   )
 }

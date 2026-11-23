@@ -102,6 +102,19 @@ a:focus {
   color: #fff;
 }
 
+.btn.btn-danger {
+  background-color: #b02a45;
+  border-color: #b02a45;
+  color: #fff;
+}
+
+.btn.btn-danger:hover,
+.btn.btn-danger:focus {
+  background-color: #922138;
+  border-color: #922138;
+  color: #fff;
+}
+
 .btn:disabled,
 .btn.disabled {
   opacity: 0.55;
@@ -288,6 +301,12 @@ a:focus {
   color: #fff !important;
 }
 
+.product-item:hover .btn-outline-danger {
+  background: #fff !important;
+  border-color: #b02a45 !important;
+  color: #b02a45 !important;
+}
+
 .product-item .price-badge {
   width: 88px;
 }
@@ -395,6 +414,12 @@ a:focus {
   background: #fff5f8;
   color: #7d2c47;
   padding: 1rem 1.25rem;
+}
+
+.alert-app--success {
+  border-color: #a8d5bf;
+  background: #f2fbf6;
+  color: #1f6b4a;
 }
 
 /* ---------- Formulario ---------- */
